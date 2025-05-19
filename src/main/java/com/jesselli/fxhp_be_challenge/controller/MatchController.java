@@ -100,47 +100,42 @@ public class MatchController {
 		for (Order order : allOrders) {
 			String key = order.getKey();
 			List<Order> existingOrders = ordersWithMatchValues.getOrDefault(key, new ArrayList<Order>());
-
-			boolean orderCombined = false;
-
-			// Iterate through the previously-processed orders to see if there
-			// are any that are NOT fully matched and can be satisfied
-			// by this order
-			for (int i = 0; i < existingOrders.size(); i++) {
-				Order existingOrder = existingOrders.get(i);
-				if (existingOrder.match == 1.0) {
-					continue;
-				}
-
-				if (order.match == 1.0) {
-					break;
-				}
-
-				OrderPair updated = updateOrderPair(existingOrder, order);
-				existingOrder = updated.order1;
-				order = updated.order2;
-
-				// If the users were the same and the amount remaining for the order
-				// is zero after we update the orders, then we want to remove it from
-				// the existing orders list. We have combined the orders.
-				if (existingOrder.amount == 0) {
-					existingOrders.remove(i);
-				} else {
-					existingOrders.set(i, existingOrder);
-				}
-
-				if (order.amount == 0) {
-					orderCombined = true;
-					break;
-				}
-			}
-
-			if (!orderCombined) {
-				existingOrders.add(order);
-			}
+			checkOrderAgainstExistingOrders(existingOrders, order);
 			ordersWithMatchValues.put(key, existingOrders);
 		}
 		return ordersWithMatchValues;
+	}
+
+	/**
+	 * Combines orders (if they're from the same user) and checks if this order can
+	 * help satisfy any already-processed orders that haven't yet matched 100%
+	 */
+	private void checkOrderAgainstExistingOrders(List<Order> existingOrders, Order order) {
+		int i = 0;
+		// NOTE: If the amount is zero, it's because the order has been combined with
+		// another of the user's orders
+		while (i < existingOrders.size() && order.match < 1.0 && order.amount > 0) {
+			Order existingOrder = existingOrders.get(i);
+			if (existingOrder.match == 1.0) {
+				i++;
+				continue;
+			}
+
+			OrderPair updated = updateOrderPair(existingOrder, order);
+			existingOrder = updated.order1;
+			order = updated.order2;
+
+			if (existingOrder.amount == 0) {
+				existingOrders.remove(i);
+			} else {
+				existingOrders.set(i, existingOrder);
+				i++;
+			}
+		}
+
+		if (order.amount > 0) {
+			existingOrders.add(order);
+		}
 	}
 
 	/**

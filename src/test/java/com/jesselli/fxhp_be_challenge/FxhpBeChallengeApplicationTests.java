@@ -35,10 +35,6 @@ class FxhpBeChallengeApplicationTests {
 	}
 
 	@Test
-	void contextLoads() {
-	}
-
-	@Test
 	void testScenarioA() {
 		// "Scenario A" as defined in the Acceptance Criteria
 		Order order = new Order("EURUSD", "USD", Direction.SELL, 10000.0, "20250130", "User A");
